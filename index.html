@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symbol Account Mosaic Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    h1 span {
+      color: #818cf8;
+    }
+
+    /* Search card */
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group.network { flex: 0 0 140px; }
+    .form-group.address { flex: 1 1 300px; }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select, input[type="text"] {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      padding: 0.55rem 0.75rem;
+      transition: border-color 0.2s;
+      outline: none;
+      width: 100%;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: #6366f1;
+    }
+
+    select { cursor: pointer; }
+
+    .btn {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Error / Info */
+    .alert {
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
+    .alert.error { background: #2d1b1b; border: 1px solid #7f1d1d; color: #fca5a5; }
+    .alert.info  { background: #1b2035; border: 1px solid #3730a3; color: #a5b4fc; }
+
+    /* Account summary */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
+    .summary-item {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+    }
+
+    .summary-item .s-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 0.3rem;
+    }
+
+    .summary-item .s-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      word-break: break-all;
+    }
+
+    .summary-item .s-value.mono {
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 0.78rem;
+    }
+
+    /* Mosaic table */
+    .table-card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .table-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #2d3148;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .badge {
+      background: #312e81;
+      color: #a5b4fc;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      padding: 0.65rem 1.5rem;
+      background: #181b2a;
+      border-bottom: 1px solid #2d3148;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #242840;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #252940; }
+
+    tbody td {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    td.mosaic-name {
+      font-weight: 600;
+      color: #c7d2fe;
+    }
+
+    td.mosaic-name .unknown {
+      color: #475569;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    td.mosaic-id {
+      font-family: 'SFMono-Regular', 'Consolas', monospace;
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    td.mosaic-amount {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+
+    /* Loading spinner */
+    .spinner-wrap {
+      text-align: center;
+      padding: 2.5rem;
+      display: none;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #2d3148;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    .spinner-wrap p {
+      margin-top: 0.75rem;
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: #475569;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    @media (max-width: 520px) {
+      thead th:nth-child(2),
+      tbody td:nth-child(2) { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">S</div>
+    <h1>Symbol <span>Mosaic Viewer</span></h1>
+  </header>
+
+  <!-- Search form -->
+  <div class="card">
+    <div class="form-row">
+      <div class="form-group network">
+        <label for="network">Network</label>
+        <select id="network">
+          <option value="mainnet">Mainnet</option>
+          <option value="testnet">Testnet</option>
+        </select>
+      </div>
+      <div class="form-group address">
+        <label for="address">Account Address</label>
+        <input
+          type="text"
+          id="address"
+          placeholder="例: NAUDKL-XAJPNA-..."
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+      <button class="btn" id="searchBtn" onclick="search()">Search</button>
+    </div>
+  </div>
+
+  <!-- Alert area -->
+  <div class="alert" id="alert"></div>
+
+  <!-- Loading -->
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner"></div>
+    <p>ノードに接続中...</p>
+  </div>
+
+  <!-- Account summary -->
+  <div class="summary" id="summary">
+    <div class="summary-item">
+      <div class="s-label">Address</div>
+      <div class="s-value mono" id="s-address">—</div>
+    </div>
+    <div class="summary-item">
+      <div class="s-label">Importance</div>
+      <div class="s-value" id="s-importance">—</div>
+    </div>
+    <div class="summary-item">
+      <div class="s-label">Mosaic Count</div>
+      <div class="s-value" id="s-count">—</div>
+    </div>
+  </div>
+
+  <!-- Mosaic table -->
+  <div class="table-card" id="tableCard">
+    <div class="table-header">
+      <span class="table-title">保有モザイク</span>
+      <span class="badge" id="totalBadge">0</span>
+    </div>
+    <div class="spinner-wrap" id="tableSpinner">
+      <div class="spinner"></div>
+      <p>モザイク詳細を取得中...</p>
+    </div>
+    <div class="empty" id="emptyState">このアカウントはモザイクを保有していません</div>
+    <table id="mosaicTable" style="display:none">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Mosaic ID</th>
+          <th style="text-align:right">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="mosaicBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const NODES = {
+    mainnet: 'https://symbol-sakura-16.next-web-technology.com:3001',
+    testnet: 'https://001-sai-dual.symboltest.net:3001',
+  };
+
+  // Enter キーでも検索
+  document.getElementById('address').addEventListener('keydown', e => {
+    if (e.key === 'Enter') search();
+  });
+
+  function getNodeUrl() {
+    return NODES[document.getElementById('network').value];
+  }
+
+  function showAlert(msg, type = 'error') {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = `alert ${type}`;
+    el.style.display = 'block';
+  }
+
+  function hideAlert() {
+    document.getElementById('alert').style.display = 'none';
+  }
+
+  function setLoading(loading) {
+    document.getElementById('spinner').style.display = loading ? 'block' : 'none';
+    document.getElementById('searchBtn').disabled = loading;
+  }
+
+  function hideAll() {
+    document.getElementById('summary').style.display = 'none';
+    document.getElementById('tableCard').style.display = 'none';
+    document.getElementById('tableSpinner').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('mosaicTable').style.display = 'none';
+    document.getElementById('mosaicBody').innerHTML = '';
+    hideAlert();
+  }
+
+  // raw amount を divisibility で割って表示用文字列に変換
+  function formatAmount(rawAmount, divisibility) {
+    if (divisibility === 0) {
+      return BigInt(rawAmount).toLocaleString();
+    }
+    const raw = BigInt(rawAmount);
+    const divisor = BigInt(10 ** divisibility);
+    const intPart = raw / divisor;
+    const fracPart = raw % divisor;
+    const fracStr = fracPart.toString().padStart(divisibility, '0');
+    return `${intPart.toLocaleString()}.${fracStr}`;
+  }
+
+  async function search() {
+    const rawAddress = document.getElementById('address').value.trim();
+    if (!rawAddress) { showAlert('アドレスを入力してください'); return; }
+
+    // Symbol アドレスはハイフン除去して使う
+    const address = rawAddress.replace(/-/g, '');
+    const nodeUrl = getNodeUrl();
+
+    hideAll();
+    setLoading(true);
+
+    try {
+      // 1. アカウント情報取得
+      const accountRes = await fetch(`${nodeUrl}/accounts/${address}`);
+      if (!accountRes.ok) {
+        if (accountRes.status === 404) throw new Error('アカウントが見つかりません。アドレスを確認してください。');
+        throw new Error(`アカウント取得エラー (HTTP ${accountRes.status})`);
+      }
+      const accountData = await accountRes.json();
+      const account = accountData.account;
+
+      // サマリー表示
+      document.getElementById('s-address').textContent = formatAddress(account.address);
+      document.getElementById('s-importance').textContent = account.importance || '0';
+      document.getElementById('s-count').textContent = account.mosaics?.length ?? 0;
+      document.getElementById('summary').style.display = 'grid';
+
+      // テーブルカードを表示
+      document.getElementById('tableCard').style.display = 'block';
+      document.getElementById('totalBadge').textContent = account.mosaics?.length ?? 0;
+
+      const mosaics = account.mosaics ?? [];
+
+      if (mosaics.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        setLoading(false);
+        return;
+      }
+
+      // 2. モザイク詳細（divisibility）を取得
+      document.getElementById('tableSpinner').style.display = 'block';
+      setLoading(false);
+
+      const mosaicIds = mosaics.map(m => m.id);
+
+      const [mosaicDetails, mosaicNames] = await Promise.all([
+        fetchMosaicDetails(nodeUrl, mosaicIds),
+        fetchMosaicNames(nodeUrl, mosaicIds),
+      ]);
+
+      // テーブル描画
+      renderTable(mosaics, mosaicDetails, mosaicNames);
+
+    } catch (err) {
+      showAlert(err.message || 'エラーが発生しました。しばらくしてから再試行してください。');
+    } finally {
+      setLoading(false);
+      document.getElementById('tableSpinner').style.display = 'none';
+    }
+  }
+
+  async function fetchMosaicDetails(nodeUrl, mosaicIds) {
+    try {
+      const res = await fetch(`${nodeUrl}/mosaics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mosaicIds }),
+      });
+      if (!res.ok) return {};
+      const data = await res.json();
+      // id => divisibility のマップを作成
+      const map = {};
+      for (const item of data) {
+        if (item.mosaic) {
+          map[item.mosaic.id] = item.mosaic.divisibility ?? 0;
+        }
+      }
+      return map;
+    } catch {
+      return {};
+    }
+  }
+
+  async function fetchMosaicNames(nodeUrl, mosaicIds) {
+    try {
+      const res = await fetch(`${nodeUrl}/namespaces/mosaic/names`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mosaicIds }),
+      });
+      if (!res.ok) return {};
+      const data = await res.json();
+      // id => name のマップを作成
+      const map = {};
+      for (const item of data.mosaicNames ?? []) {
+        const names = item.names ?? [];
+        if (names.length > 0) {
+          map[item.mosaicId] = names[0];
+        }
+      }
+      return map;
+    } catch {
+      return {};
+    }
+  }
+
+  function renderTable(mosaics, detailsMap, namesMap) {
+    const tbody = document.getElementById('mosaicBody');
+    tbody.innerHTML = '';
+
+    for (const mosaic of mosaics) {
+      const id = mosaic.id;
+      const divisibility = detailsMap[id] ?? 0;
+      const name = namesMap[id] ?? null;
+      const amount = formatAmount(mosaic.amount, divisibility);
+
+      const tr = document.createElement('tr');
+
+      // Name
+      const tdName = document.createElement('td');
+      tdName.className = 'mosaic-name';
+      if (name) {
+        tdName.textContent = name;
+      } else {
+        const span = document.createElement('span');
+        span.className = 'unknown';
+        span.textContent = '(名前なし)';
+        tdName.appendChild(span);
+      }
+
+      // Mosaic ID
+      const tdId = document.createElement('td');
+      tdId.className = 'mosaic-id';
+      tdId.textContent = id;
+
+      // Amount
+      const tdAmount = document.createElement('td');
+      tdAmount.className = 'mosaic-amount';
+      tdAmount.textContent = amount;
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdId);
+      tr.appendChild(tdAmount);
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('mosaicTable').style.display = 'table';
+  }
+
+  // アドレスを見やすく 6文字ごとにハイフン区切り表示
+  function formatAddress(raw) {
+    return raw.replace(/(.{6})/g, '$1-').replace(/-$/, '');
+  }
+</script>
+</body>
+</html>
