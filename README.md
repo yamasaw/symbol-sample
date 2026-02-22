@@ -1,50 +1,40 @@
 # symbol-sample
 
 Symbol ブロックチェーンのアカウントが保有するモザイク（トークン）一覧を表示する Web アプリです。
+Hono をバックエンドとして使用し、Symbol REST API へのアクセスをサーバー側でプロキシします。
 
 ---
 
 ## 起動方法
 
-### ブラウザで直接開く（最も簡単）
-
-ビルドや依存インストールは不要です。`index.html` をブラウザで直接開いてください。
+### 1. 依存パッケージのインストール
 
 ```bash
-open index.html          # macOS
-start index.html         # Windows
-xdg-open index.html      # Linux
+pnpm install
 ```
 
-または Finder / エクスプローラーから `index.html` をダブルクリックするだけで動作します。
-
----
-
-### ローカルサーバーで起動する（推奨）
-
-`file://` プロトコルでは一部のブラウザでセキュリティ制限が発生することがあります。
-その場合はローカルサーバーを使ってください。
-
-**Python（インストール不要・標準搭載）:**
+### 2. 開発サーバーの起動
 
 ```bash
-# Python 3
-python3 -m http.server 8080
-
-# Python 2
-python -m SimpleHTTPServer 8080
+pnpm dev
 ```
 
-**Node.js がある場合:**
+ブラウザで http://localhost:3000 を開いてください。
+
+ファイルを変更すると自動でサーバーが再起動します（`tsx watch` による Hot Reload）。
+
+### 本番起動
 
 ```bash
-npx serve .
+pnpm start
 ```
 
-起動後、ブラウザで以下にアクセスします。
+### ポートの変更
 
-```
-http://localhost:8080
+環境変数 `PORT` で変更できます。
+
+```bash
+PORT=8080 pnpm dev
 ```
 
 ---
@@ -74,23 +64,37 @@ http://localhost:8080
 
 ```
 symbol-sample/
-├── index.html          # Web アプリ本体（これだけで動作します）
-├── index.ts            # TypeScript サンプルコード
-├── symbol-api-guide.md # Symbol REST API リファレンスまとめ
+├── src/
+│   ├── server.ts          # Hono サーバーエントリーポイント
+│   └── routes/
+│       └── symbol.ts      # Symbol REST API プロキシルート
+├── public/
+│   └── index.html         # フロントエンド
+├── index.ts               # TypeScript サンプルコード
+├── symbol-api-guide.md    # Symbol REST API リファレンスまとめ
+├── tsconfig.json
 ├── package.json
 └── README.md
 ```
+
+### API ルート
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET  | `/api/accounts/:address?network=` | アカウント情報取得 |
+| POST | `/api/mosaics?network=` | モザイク詳細取得 |
+| POST | `/api/namespaces/mosaic/names?network=` | モザイク名取得 |
 
 ---
 
 ## 接続先ノード
 
-アプリは以下の公開ノードを使用します。ノードが応答しない場合はしばらく待ってから再試行してください。
+`network` クエリパラメータに応じてサーバー側で切り替えます。
 
 | ネットワーク | ノード URL |
 |-------------|-----------|
-| Mainnet | `https://symbol-sakura-16.next-web-technology.com:3001` |
-| Testnet | `https://001-sai-dual.symboltest.net:3001` |
+| mainnet | `https://symbol-sakura-16.next-web-technology.com:3001` |
+| testnet | `https://001-sai-dual.symboltest.net:3001` |
 
 ---
 
@@ -99,3 +103,4 @@ symbol-sample/
 - [Symbol API ガイド](./symbol-api-guide.md) — 本プロジェクトで使用している REST API の詳細
 - [Symbol Documentation](https://docs.symbol.dev/)
 - [Symbol Explorer](https://symbol.fyi/) — 公開ノード一覧・ブロックエクスプローラー
+- [Hono](https://hono.dev/) — Web フレームワーク
